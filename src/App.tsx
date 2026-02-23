@@ -14,6 +14,7 @@ const AdminLoginPage = lazy(() => import("./pages/AdminLoginPage").then(m => ({ 
 const LoginPage = lazy(() => import("./pages/LoginPage").then(m => ({ default: m.LoginPage })));
 const SignupPage = lazy(() => import("./pages/SignupPage").then(m => ({ default: m.SignupPage })));
 const LegalPage = lazy(() => import("./pages/LegalPage").then(m => ({ default: m.LegalPage })));
+const InfoPage = lazy(() => import("./pages/InfoPage").then(m => ({ default: m.InfoPage })));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage").then(m => ({ default: m.NotFoundPage })));
 const StoreFrontPage = lazy(() => import("./pages/StoreFrontPage").then(m => ({ default: m.StoreFrontPage })));
 const ProductDetailPage = lazy(() => import("./pages/ProductDetailPage").then(m => ({ default: m.ProductDetailPage })));
@@ -55,6 +56,7 @@ function App() {
                 <Route path="/store/:storeSlug" element={<StoreFrontPage />} />
                 <Route path="/store/:storeSlug/product/:productId" element={<ProductDetailPage />} />
                 <Route path="/legal" element={<LegalPage />} />
+                <Route path="/info/:slug" element={<InfoPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Suspense>
