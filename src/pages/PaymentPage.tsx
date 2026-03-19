@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShieldCheck, Star, Phone, CheckCircle, Package, AlertCircle, Lock, Copy } from "lucide-react";
+import { Loader2, ShieldCheck, Star, Phone, CheckCircle, Package, AlertCircle, Lock, Copy, Smartphone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
