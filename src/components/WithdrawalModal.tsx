@@ -469,9 +469,22 @@ export function WithdrawalModal({
             {/* Step 1: Select Payment Method */}
             {step === 1 && (
               <div>
-                <h3 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '1.5rem', color: '#0f172a' }}>
-                  Select Payment Method
+                <h3 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '1rem', color: '#0f172a' }}>
+                  Select Withdrawal Method
                 </h3>
+
+                <div style={{
+                  background: 'rgba(37, 78, 88, 0.08)',
+                  border: '1px solid rgba(37, 78, 88, 0.2)',
+                  borderRadius: '10px',
+                  padding: '0.875rem 1rem',
+                  marginBottom: '1.5rem',
+                  fontSize: '0.8125rem',
+                  color: '#334155',
+                  lineHeight: '1.5',
+                }}>
+                  <strong>📱 M-Pesa Only:</strong> Withdrawals are processed via <strong>Pochi la Biashara</strong> (free) or <strong>B2B Paybill</strong> (KES 30 fee). Other methods are not supported.
+                </div>
 
                 {paymentMethods.length === 0 ? (
                   <div style={{
