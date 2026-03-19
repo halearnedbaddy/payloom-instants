@@ -104,6 +104,94 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_conversations: {
+        Row: {
+          created_at: string
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string | null
+          id: string
+          last_message_at: string | null
+          seller_id: string
+          status: string | null
+          store_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          id?: string
+          last_message_at?: string | null
+          seller_id: string
+          status?: string | null
+          store_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          id?: string
+          last_message_at?: string | null
+          seller_id?: string
+          status?: string | null
+          store_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_conversations_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          message: string
+          read: boolean | null
+          sender_id: string | null
+          sender_name: string | null
+          sender_type: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          message: string
+          read?: boolean | null
+          sender_id?: string | null
+          sender_name?: string | null
+          sender_type?: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          read?: boolean | null
+          sender_id?: string | null
+          sender_name?: string | null
+          sender_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compliance_submissions: {
         Row: {
           admin_notes: string | null
@@ -223,6 +311,59 @@ export type Database = {
           },
         ]
       }
+      customers: {
+        Row: {
+          average_order_value: number | null
+          created_at: string
+          email: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          last_order_at: string | null
+          phone: string | null
+          store_id: string
+          total_orders: number | null
+          total_spent: number | null
+          updated_at: string
+        }
+        Insert: {
+          average_order_value?: number | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          last_order_at?: string | null
+          phone?: string | null
+          store_id: string
+          total_orders?: number | null
+          total_spent?: number | null
+          updated_at?: string
+        }
+        Update: {
+          average_order_value?: number | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          last_order_at?: string | null
+          phone?: string | null
+          store_id?: string
+          total_orders?: number | null
+          total_spent?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       disbursements: {
         Row: {
           account_id: string
@@ -283,6 +424,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      earnings: {
+        Row: {
+          amount: number
+          created_at: string | null
+          description: string | null
+          earned_at: string | null
+          expires_at: string | null
+          id: string
+          reference: string | null
+          status: string
+          type: string
+          user_id: string
+          withdrawal_id: string | null
+          withdrawn_at: string | null
+        }
+        Insert: {
+          amount?: number
+          created_at?: string | null
+          description?: string | null
+          earned_at?: string | null
+          expires_at?: string | null
+          id?: string
+          reference?: string | null
+          status?: string
+          type: string
+          user_id: string
+          withdrawal_id?: string | null
+          withdrawn_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          description?: string | null
+          earned_at?: string | null
+          expires_at?: string | null
+          id?: string
+          reference?: string | null
+          status?: string
+          type?: string
+          user_id?: string
+          withdrawal_id?: string | null
+          withdrawn_at?: string | null
+        }
+        Relationships: []
       }
       holds: {
         Row: {
@@ -436,6 +622,493 @@ export type Database = {
           },
         ]
       }
+      ledger_entries: {
+        Row: {
+          amount: number
+          created_at: string | null
+          credit_account: string
+          debit_account: string
+          description: string | null
+          entry_ref: string
+          id: string
+          metadata: Json | null
+          order_id: string | null
+          transaction_type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          credit_account: string
+          debit_account: string
+          description?: string | null
+          entry_ref: string
+          id?: string
+          metadata?: Json | null
+          order_id?: string | null
+          transaction_type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          credit_account?: string
+          debit_account?: string
+          description?: string | null
+          entry_ref?: string
+          id?: string
+          metadata?: Json | null
+          order_id?: string | null
+          transaction_type?: string
+        }
+        Relationships: []
+      }
+      mpesa_account_balances: {
+        Row: {
+          available_balance: number | null
+          checked_at: string | null
+          created_at: string | null
+          currency: string | null
+          current_balance: number | null
+          id: string
+          raw_balance_string: string | null
+          reserved_balance: number | null
+          shortcode: string
+        }
+        Insert: {
+          available_balance?: number | null
+          checked_at?: string | null
+          created_at?: string | null
+          currency?: string | null
+          current_balance?: number | null
+          id?: string
+          raw_balance_string?: string | null
+          reserved_balance?: number | null
+          shortcode: string
+        }
+        Update: {
+          available_balance?: number | null
+          checked_at?: string | null
+          created_at?: string | null
+          currency?: string | null
+          current_balance?: number | null
+          id?: string
+          raw_balance_string?: string | null
+          reserved_balance?: number | null
+          shortcode?: string
+        }
+        Relationships: []
+      }
+      mpesa_callbacks: {
+        Row: {
+          callback_type: string
+          checkout_request_id: string | null
+          created_at: string | null
+          id: string
+          processed: boolean | null
+          request_body: Json
+          response_body: Json | null
+          result_code: number | null
+          result_desc: string | null
+          transaction_id: string | null
+        }
+        Insert: {
+          callback_type: string
+          checkout_request_id?: string | null
+          created_at?: string | null
+          id?: string
+          processed?: boolean | null
+          request_body: Json
+          response_body?: Json | null
+          result_code?: number | null
+          result_desc?: string | null
+          transaction_id?: string | null
+        }
+        Update: {
+          callback_type?: string
+          checkout_request_id?: string | null
+          created_at?: string | null
+          id?: string
+          processed?: boolean | null
+          request_body?: Json
+          response_body?: Json | null
+          result_code?: number | null
+          result_desc?: string | null
+          transaction_id?: string | null
+        }
+        Relationships: []
+      }
+      mpesa_transactions: {
+        Row: {
+          amount: number
+          callback_data: Json | null
+          checkout_request_id: string | null
+          completed_at: string | null
+          conversation_id: string | null
+          created_at: string | null
+          currency: string | null
+          id: string
+          merchant_request_id: string | null
+          mpesa_receipt_number: string | null
+          order_id: string | null
+          originator_conversation_id: string | null
+          phone_number: string | null
+          raw_request: Json | null
+          result_code: string | null
+          result_desc: string | null
+          status: string
+          transaction_type: string
+          updated_at: string | null
+          verification_status: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          amount?: number
+          callback_data?: Json | null
+          checkout_request_id?: string | null
+          completed_at?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          merchant_request_id?: string | null
+          mpesa_receipt_number?: string | null
+          order_id?: string | null
+          originator_conversation_id?: string | null
+          phone_number?: string | null
+          raw_request?: Json | null
+          result_code?: string | null
+          result_desc?: string | null
+          status?: string
+          transaction_type: string
+          updated_at?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          amount?: number
+          callback_data?: Json | null
+          checkout_request_id?: string | null
+          completed_at?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          merchant_request_id?: string | null
+          mpesa_receipt_number?: string | null
+          order_id?: string | null
+          originator_conversation_id?: string | null
+          phone_number?: string | null
+          raw_request?: Json | null
+          result_code?: string | null
+          result_desc?: string | null
+          status?: string
+          transaction_type?: string
+          updated_at?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
+      mpesa_verification_attempts: {
+        Row: {
+          created_at: string
+          customer_phone: string
+          daraja_response: Json | null
+          error_message: string | null
+          id: string
+          ip_address: string | null
+          order_id: string
+          transaction_code: string
+          verification_status: string
+        }
+        Insert: {
+          created_at?: string
+          customer_phone: string
+          daraja_response?: Json | null
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          order_id: string
+          transaction_code: string
+          verification_status?: string
+        }
+        Update: {
+          created_at?: string
+          customer_phone?: string
+          daraja_response?: Json | null
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          order_id?: string
+          transaction_code?: string
+          verification_status?: string
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          category_id: number | null
+          compare_at_price: number | null
+          created_at: string
+          currency: string | null
+          description: string | null
+          dimensions: Json | null
+          id: string
+          images: string[] | null
+          name: string
+          price: number
+          quantity: number | null
+          sales_count: number | null
+          seo_description: string | null
+          seo_title: string | null
+          sku: string | null
+          slug: string | null
+          status: string | null
+          store_id: string
+          tags: string[] | null
+          updated_at: string
+          weight: number | null
+        }
+        Insert: {
+          category_id?: number | null
+          compare_at_price?: number | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          dimensions?: Json | null
+          id?: string
+          images?: string[] | null
+          name: string
+          price?: number
+          quantity?: number | null
+          sales_count?: number | null
+          seo_description?: string | null
+          seo_title?: string | null
+          sku?: string | null
+          slug?: string | null
+          status?: string | null
+          store_id: string
+          tags?: string[] | null
+          updated_at?: string
+          weight?: number | null
+        }
+        Update: {
+          category_id?: number | null
+          compare_at_price?: number | null
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          dimensions?: Json | null
+          id?: string
+          images?: string[] | null
+          name?: string
+          price?: number
+          quantity?: number | null
+          sales_count?: number | null
+          seo_description?: string | null
+          seo_title?: string | null
+          sku?: string | null
+          slug?: string | null
+          status?: string | null
+          store_id?: string
+          tags?: string[] | null
+          updated_at?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          business_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          phone: string | null
+          rating: number | null
+          total_reviews: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          business_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone?: string | null
+          rating?: number | null
+          total_reviews?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          business_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone?: string | null
+          rating?: number | null
+          total_reviews?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      social_accounts: {
+        Row: {
+          connected: boolean | null
+          created_at: string
+          id: string
+          platform: string
+          profile_url: string | null
+          store_id: string
+          username: string | null
+        }
+        Insert: {
+          connected?: boolean | null
+          created_at?: string
+          id?: string
+          platform: string
+          profile_url?: string | null
+          store_id: string
+          username?: string | null
+        }
+        Update: {
+          connected?: boolean | null
+          created_at?: string
+          id?: string
+          platform?: string
+          profile_url?: string | null
+          store_id?: string
+          username?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_accounts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stores: {
+        Row: {
+          bio: string | null
+          created_at: string
+          id: string
+          logo: string | null
+          name: string
+          plan: string | null
+          seller_id: string
+          slug: string
+          social_links: Json | null
+          status: string | null
+          theme: Json | null
+          updated_at: string
+          visibility: string | null
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          id?: string
+          logo?: string | null
+          name: string
+          plan?: string | null
+          seller_id: string
+          slug: string
+          social_links?: Json | null
+          status?: string | null
+          theme?: Json | null
+          updated_at?: string
+          visibility?: string | null
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          id?: string
+          logo?: string | null
+          name?: string
+          plan?: string | null
+          seller_id?: string
+          slug?: string
+          social_links?: Json | null
+          status?: string | null
+          theme?: Json | null
+          updated_at?: string
+          visibility?: string | null
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          amount: number | null
+          cancelled_at: string | null
+          checkout_request_id: string | null
+          created_at: string | null
+          currency: string | null
+          expires_at: string | null
+          id: string
+          mpesa_transaction_id: string | null
+          paid_at: string | null
+          plan: string
+          reference: string | null
+          started_at: string | null
+          status: string
+          trial_ends_at: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          cancelled_at?: string | null
+          checkout_request_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          expires_at?: string | null
+          id?: string
+          mpesa_transaction_id?: string | null
+          paid_at?: string | null
+          plan?: string
+          reference?: string | null
+          started_at?: string | null
+          status?: string
+          trial_ends_at?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          cancelled_at?: string | null
+          checkout_request_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          expires_at?: string | null
+          id?: string
+          mpesa_transaction_id?: string | null
+          paid_at?: string | null
+          plan?: string
+          reference?: string | null
+          started_at?: string | null
+          status?: string
+          trial_ends_at?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       support_tickets: {
         Row: {
           account_id: string
@@ -485,67 +1158,133 @@ export type Database = {
       }
       transactions: {
         Row: {
+          accepted_at: string | null
           account_id: string
           amount: number
+          buyer_address: string | null
+          buyer_email: string | null
+          buyer_id: string | null
+          buyer_name: string | null
+          buyer_phone: string | null
           cancel_url: string | null
           checkout_url: string | null
           completed_at: string | null
+          courier_name: string | null
           created_at: string
           currency: string
+          delivered_at: string | null
           description: string | null
+          estimated_delivery_date: string | null
           external_ref: string | null
           fee_amount: number | null
           fee_percentage: number | null
           id: string
+          item_description: string | null
+          item_images: string[] | null
+          item_name: string | null
           merchant_name: string | null
           metadata: Json | null
           payment_method: string | null
           phone: string | null
+          platform_fee: number | null
+          product_id: string | null
           provider_ref: string | null
           redirect_url: string | null
+          rejected_at: string | null
+          rejection_reason: string | null
+          seller_id: string | null
+          seller_payout: number | null
+          shipped_at: string | null
+          shipping_notes: string | null
           status: string | null
+          tracking_number: string | null
+          updated_at: string | null
         }
         Insert: {
+          accepted_at?: string | null
           account_id: string
           amount: number
+          buyer_address?: string | null
+          buyer_email?: string | null
+          buyer_id?: string | null
+          buyer_name?: string | null
+          buyer_phone?: string | null
           cancel_url?: string | null
           checkout_url?: string | null
           completed_at?: string | null
+          courier_name?: string | null
           created_at?: string
           currency?: string
+          delivered_at?: string | null
           description?: string | null
+          estimated_delivery_date?: string | null
           external_ref?: string | null
           fee_amount?: number | null
           fee_percentage?: number | null
           id?: string
+          item_description?: string | null
+          item_images?: string[] | null
+          item_name?: string | null
           merchant_name?: string | null
           metadata?: Json | null
           payment_method?: string | null
           phone?: string | null
+          platform_fee?: number | null
+          product_id?: string | null
           provider_ref?: string | null
           redirect_url?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          seller_id?: string | null
+          seller_payout?: number | null
+          shipped_at?: string | null
+          shipping_notes?: string | null
           status?: string | null
+          tracking_number?: string | null
+          updated_at?: string | null
         }
         Update: {
+          accepted_at?: string | null
           account_id?: string
           amount?: number
+          buyer_address?: string | null
+          buyer_email?: string | null
+          buyer_id?: string | null
+          buyer_name?: string | null
+          buyer_phone?: string | null
           cancel_url?: string | null
           checkout_url?: string | null
           completed_at?: string | null
+          courier_name?: string | null
           created_at?: string
           currency?: string
+          delivered_at?: string | null
           description?: string | null
+          estimated_delivery_date?: string | null
           external_ref?: string | null
           fee_amount?: number | null
           fee_percentage?: number | null
           id?: string
+          item_description?: string | null
+          item_images?: string[] | null
+          item_name?: string | null
           merchant_name?: string | null
           metadata?: Json | null
           payment_method?: string | null
           phone?: string | null
+          platform_fee?: number | null
+          product_id?: string | null
           provider_ref?: string | null
           redirect_url?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          seller_id?: string | null
+          seller_payout?: number | null
+          shipped_at?: string | null
+          shipping_notes?: string | null
           status?: string | null
+          tracking_number?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -571,6 +1310,39 @@ export type Database = {
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallets: {
+        Row: {
+          available_balance: number | null
+          created_at: string
+          currency: string | null
+          id: string
+          pending_balance: number | null
+          total_earned: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          available_balance?: number | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          pending_balance?: number | null
+          total_earned?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          available_balance?: number | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          pending_balance?: number | null
+          total_earned?: number | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
