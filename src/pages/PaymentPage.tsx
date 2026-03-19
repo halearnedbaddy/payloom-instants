@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ShieldCheck, Star, Phone, CheckCircle, Package, AlertCircle, Lock, Copy } from "lucide-react";
+import { Loader2, ShieldCheck, Star, Phone, CheckCircle, Package, AlertCircle, Lock, Copy, Smartphone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
@@ -44,7 +44,7 @@ interface SellerPaymentMethod {
   is_active: boolean | null;
 }
 
-type Step = 'otp' | 'verify' | 'checkout' | 'payment' | 'submitting' | 'success';
+type Step = 'otp' | 'verify' | 'checkout' | 'payment' | 'stk-push' | 'stk-waiting' | 'submitting' | 'success';
 
 const PaymentPage = () => {
   const { linkId, transactionId } = useParams<{ linkId?: string; transactionId?: string }>();
@@ -76,7 +76,10 @@ const PaymentPage = () => {
   const [codeError, setCodeError] = useState<string | null>(null);
   const [createdTxId, setCreatedTxId] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
-
+  const [stkPushLoading, setStkPushLoading] = useState(false);
+  const [_stkCheckoutRequestId, setStkCheckoutRequestId] = useState<string | null>(null);
+  const [_stkPolling, _setStkPolling] = useState(false);
+  const STK_PUSH_THRESHOLD = 3000; // KES
   useEffect(() => {
     if (linkId) fetchPaymentLink();
     else if (transactionId) {
@@ -168,11 +171,72 @@ const PaymentPage = () => {
   const handleProceedToPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!buyerName.trim() || !linkId || !paymentLink) return;
+    
+    const priceVal = typeof paymentLink.price === 'string' ? parseFloat(paymentLink.price) : paymentLink.price;
+    
+    // For amounts >= 3000, offer STK Push
+    if (priceVal >= STK_PUSH_THRESHOLD) {
+      setCurrentStep('stk-push');
+      return;
+    }
+    
     if (sellerMethods.length === 0) {
       toast({ title: "No Payment Methods", description: "Seller hasn't configured payment methods", variant: "destructive" });
       return;
     }
-    // Auto-select first method if only one
+    if (sellerMethods.length === 1) setSelectedMethod(sellerMethods[0]);
+    setCurrentStep('payment');
+  };
+
+  const handleSTKPush = async () => {
+    if (!paymentLink || !linkId) return;
+    setStkPushLoading(true);
+    setError(null);
+    try {
+      // Create order first
+      const orderRes = await fetch(`${SUPABASE_URL}/functions/v1/links-api/${linkId}/purchase`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({
+          buyerName, buyerPhone: phone, buyerEmail: buyerEmail || undefined,
+          deliveryAddress: buyerAddress || undefined, paymentMethod: 'MPESA_STK',
+        }),
+      });
+      const orderResult = await orderRes.json();
+      if (!orderResult.success) throw new Error(orderResult.error || "Failed to create order");
+      const orderId = orderResult.data?.transactionId || orderResult.data?.id;
+      setCreatedTxId(orderId);
+
+      // Initiate STK Push
+      const stkRes = await fetch(`${SUPABASE_URL}/functions/v1/mpesa-api/stk-push`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({
+          phoneNumber: phone,
+          amount: typeof paymentLink.price === 'string' ? parseFloat(paymentLink.price) : paymentLink.price,
+          orderId,
+          orderRef: orderId,
+        }),
+      });
+      const stkResult = await stkRes.json();
+      if (!stkResult.success) throw new Error(stkResult.error || "STK Push failed");
+      
+      setStkCheckoutRequestId(stkResult.checkoutRequestId);
+      setCurrentStep('stk-waiting');
+      toast({ title: "Check your phone", description: "Enter your M-Pesa PIN to complete payment" });
+    } catch (err: any) {
+      setError(err.message);
+      toast({ title: "STK Push Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setStkPushLoading(false);
+    }
+  };
+
+  const handleFallbackToManual = () => {
+    if (sellerMethods.length === 0) {
+      toast({ title: "No Payment Methods", description: "Seller hasn't configured manual payment methods", variant: "destructive" });
+      return;
+    }
     if (sellerMethods.length === 1) setSelectedMethod(sellerMethods[0]);
     setCurrentStep('payment');
   };
@@ -431,6 +495,93 @@ const PaymentPage = () => {
                 </div>
                 <Button type="submit" className="w-full" size="lg">Continue to Payment →</Button>
               </form>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* STK Push Step - for amounts >= 3000 */}
+        {currentStep === 'stk-push' && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Smartphone className="h-5 w-5 text-primary" />
+                <CardTitle>Pay via M-Pesa</CardTitle>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                An M-Pesa prompt will be sent to <strong>{phone}</strong>
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-center">
+                <p className="text-sm text-muted-foreground mb-1">Amount to pay</p>
+                <p className="text-2xl font-bold text-primary">{formatPrice(price, paymentLink.currency)}</p>
+              </div>
+
+              <div className="bg-muted rounded-lg p-3 text-sm space-y-1">
+                <p>✅ You'll receive an M-Pesa PIN prompt on your phone</p>
+                <p>✅ Enter your PIN to authorize the payment</p>
+                <p>✅ Payment is instant and secure</p>
+              </div>
+
+              <Button 
+                className="w-full" 
+                size="lg" 
+                disabled={stkPushLoading}
+                onClick={handleSTKPush}
+              >
+                {stkPushLoading ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending prompt...</>
+                ) : (
+                  <>📲 Pay {formatPrice(price, paymentLink.currency)} via M-Pesa</>
+                )}
+              </Button>
+
+              {error && (
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">{error}</div>
+              )}
+
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1" onClick={() => setCurrentStep('checkout')}>← Back</Button>
+                {sellerMethods.length > 0 && (
+                  <Button variant="ghost" className="flex-1 text-muted-foreground" onClick={handleFallbackToManual}>
+                    Pay manually instead
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* STK Push Waiting Step */}
+        {currentStep === 'stk-waiting' && (
+          <Card>
+            <CardContent className="pt-8 pb-6 text-center space-y-4">
+              <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+              <h3 className="text-lg font-bold text-foreground">Waiting for M-Pesa...</h3>
+              <p className="text-sm text-muted-foreground">
+                Check your phone <strong>{phone}</strong> and enter your M-Pesa PIN
+              </p>
+              <div className="bg-muted rounded-lg p-4 text-sm">
+                <p className="font-medium mb-1">💡 Didn't receive the prompt?</p>
+                <p className="text-muted-foreground">Wait a few seconds, then try again.</p>
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1" onClick={() => setCurrentStep('stk-push')}>
+                  Try Again
+                </Button>
+                {sellerMethods.length > 0 && (
+                  <Button variant="ghost" className="flex-1" onClick={handleFallbackToManual}>
+                    Pay manually
+                  </Button>
+                )}
+              </div>
+
+              {createdTxId && (
+                <div className="mt-4 p-3 bg-primary/5 rounded-lg text-sm text-left">
+                  <p>Order: <span className="font-mono font-bold">{createdTxId}</span></p>
+                  <p className="text-muted-foreground mt-1">If payment completes, you'll be notified automatically.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

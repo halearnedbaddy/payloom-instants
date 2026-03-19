@@ -142,9 +142,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    // POST /wallet/withdraw - Request withdrawal via IntaSend Send Money
+    // POST /wallet/withdraw - Request withdrawal (M-Pesa Pochi la Biashara or B2B only)
     if (method === "POST" && path === "/withdraw") {
-      const { amount, paymentMethodId, paymentMethod, accountNumber, accountName, provider, bankCode, country } = await req.json();
+      const { amount, paymentMethodId, paymentMethod, accountNumber, accountName, provider } = await req.json();
 
       if (!amount || amount <= 0) {
         return new Response(JSON.stringify({ success: false, error: "Invalid amount" }), {
@@ -168,10 +168,9 @@ Deno.serve(async (req) => {
       }
 
       // Resolve payment method details
-      let resolvedProvider = provider || "MPESA-B2C";
+      let resolvedProvider = provider || "MPESA_POCHI";
       let resolvedAccount = accountNumber || "";
       let resolvedName = accountName || "";
-      let resolvedBankCode = bankCode || "";
 
       if (paymentMethodId) {
         const { data: pm } = await serviceClient
@@ -190,29 +189,40 @@ Deno.serve(async (req) => {
 
         resolvedAccount = pm.account_number;
         resolvedName = pm.account_name;
-        // Map provider from payment method
         const prov = (pm.provider || "").toUpperCase();
-        if (prov.includes("AIRTEL")) resolvedProvider = "AIRTEL";
-        else if (prov.includes("MTN")) resolvedProvider = "INTASEND-XB";
-        else if (prov.includes("BANK") || prov.includes("PESALINK")) resolvedProvider = "PESALINK";
-        else resolvedProvider = "MPESA-B2C";
+        if (prov.includes("POCHI")) resolvedProvider = "MPESA_POCHI";
+        else if (prov.includes("B2B") || prov.includes("PAYBILL") || prov.includes("BUSINESS")) resolvedProvider = "MPESA_B2B";
+        else resolvedProvider = "MPESA_POCHI"; // Default to Pochi
       }
 
-      // Fee structure from document: KES 20 flat withdrawal fee
-      const WITHDRAWAL_FEES: Record<string, number> = {
-        "MPESA-B2C": 20,
-        "AIRTEL": 20,
-        "INTASEND-XB": 1000, // UGX 1000
-        "PESALINK": 50,
-      };
+      // Validate: only Pochi or B2B allowed
+      if (!["MPESA_POCHI", "MPESA_B2B"].includes(resolvedProvider)) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: "Withdrawals are only supported via M-Pesa Pochi la Biashara or B2B. Please update your payment method.",
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
-      const withdrawalFee = WITHDRAWAL_FEES[resolvedProvider] || 20;
-      const netAmount = amount - withdrawalFee;
+      // Fee structure: 2% platform fee (min KES 10, max KES 500) + flat provider fee
+      const platformFeeRate = 0.02;
+      let platformFee = Math.round(amount * platformFeeRate);
+      platformFee = Math.max(10, Math.min(500, platformFee));
+
+      const providerFees: Record<string, number> = {
+        "MPESA_POCHI": 0,  // Pochi has no provider fee
+        "MPESA_B2B": 30,   // B2B has KES 30 fee
+      };
+      const providerFee = providerFees[resolvedProvider] || 0;
+      const totalFee = platformFee + providerFee;
+      const netAmount = amount - totalFee;
 
       if (netAmount <= 0) {
         return new Response(JSON.stringify({
           success: false,
-          error: `Amount too low. Withdrawal fee is KES ${withdrawalFee}`,
+          error: `Amount too low. Total fees are KES ${totalFee}`,
         }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -232,48 +242,47 @@ Deno.serve(async (req) => {
 
       const reference = `WD-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-      // Initiate IntaSend Send Money
-      const intasendUrl = Deno.env.get("SUPABASE_URL") || "";
+      // Initiate M-Pesa B2B or Pochi payout via mpesa-api
+      const supaUrl = Deno.env.get("SUPABASE_URL") || "";
       try {
-        const sendMoneyResponse = await fetch(`${intasendUrl}/functions/v1/intasend-api/send-money`, {
+        const payoutResponse = await fetch(`${supaUrl}/functions/v1/mpesa-api/payout`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": req.headers.get("Authorization") || "",
+          },
           body: JSON.stringify({
-            provider: resolvedProvider,
-            account: resolvedAccount,
+            phoneNumber: resolvedAccount,
             amount: netAmount,
-            narrative: `PayLoom withdrawal - ${reference}`,
             orderId: reference,
-            type: "withdrawal",
-            bankCode: resolvedBankCode,
-            name: resolvedName,
-            country: country || (resolvedProvider === "INTASEND-XB" ? "UG" : undefined),
-            callbackUrl: `${intasendUrl}/functions/v1/intasend-api/webhook/withdrawal`,
+            orderRef: reference,
           }),
         });
-
-        const sendResult = await sendMoneyResponse.json();
-        console.log("IntaSend withdrawal result:", sendResult);
-      } catch (sendError) {
-        console.error("IntaSend withdrawal call failed:", sendError);
-        // Don't fail the whole operation - the withdrawal is recorded
+        const payoutResult = await payoutResponse.json();
+        console.log(`${resolvedProvider} payout result:`, payoutResult);
+      } catch (payoutError) {
+        console.error("Payout call failed:", payoutError);
       }
 
-      // Create notification
-      await serviceClient.from("notifications").insert({
-        user_id: userId,
-        type: "withdrawal_processed",
-        title: "Withdrawal Processing 💸",
-        message: `Your withdrawal of KES ${netAmount.toLocaleString()} is being processed via ${resolvedProvider}.`,
-        data: { amount, netAmount, withdrawalFee, reference, provider: resolvedProvider },
+      // Create ledger entry
+      await serviceClient.from("ledger_entries").insert({
+        entry_ref: reference,
+        transaction_type: "withdrawal",
+        debit_account: "seller_wallet",
+        credit_account: resolvedProvider === "MPESA_POCHI" ? "mpesa_pochi" : "mpesa_b2b",
+        amount: netAmount,
+        description: `Withdrawal to ${resolvedProvider}: ${resolvedAccount}`,
+        metadata: { platformFee, providerFee, totalFee, grossAmount: amount, provider: resolvedProvider },
       });
 
       return new Response(JSON.stringify({
         success: true,
-        message: "Withdrawal initiated via IntaSend",
+        message: `Withdrawal initiated via ${resolvedProvider === "MPESA_POCHI" ? "M-Pesa Pochi la Biashara" : "M-Pesa B2B"}`,
         data: {
           requestedAmount: amount,
-          withdrawalFee,
+          platformFee,
+          providerFee,
+          totalFee,
           netAmount,
           reference,
           provider: resolvedProvider,

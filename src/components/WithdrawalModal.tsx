@@ -18,6 +18,8 @@ interface PaymentMethod {
   recommended?: boolean;
   limits: { min: number; max: number };
   verified: boolean;
+  /** Provider type for withdrawal routing */
+  provider?: string;
 }
 
 interface WithdrawalModalProps {
@@ -67,24 +69,26 @@ export function WithdrawalModal({
   const quickAmounts = [5000, 10000, 20000, 50000];
 
   const calculateFees = (amount: number, method: PaymentMethod | null) => {
-    if (!method || !amount) return { platformFee: 0, methodFee: 0, totalFees: 0, netAmount: 0 };
+    if (!method || !amount) return { platformFee: 0, providerFee: 0, totalFees: 0, netAmount: 0 };
 
-    const platformFeePercentage = 0.02;
-    const platformFee = Math.round(amount * platformFeePercentage);
+    // Platform fee: 2% (min KES 10, max KES 500)
+    let platformFee = Math.round(amount * 0.02);
+    platformFee = Math.max(10, Math.min(500, platformFee));
 
-    let methodFee = 0;
-    if (method.feeType === 'percentage') {
-      methodFee = Math.round(amount * (method.fee / 100));
-    } else {
-      methodFee = method.fee;
+    // Provider fee based on method
+    const providerName = (method.provider || method.name || '').toUpperCase();
+    let providerFee = 0;
+    if (providerName.includes('B2B') || providerName.includes('PAYBILL') || providerName.includes('BUSINESS')) {
+      providerFee = 30; // B2B: KES 30
     }
+    // Pochi la Biashara: KES 0
 
-    const totalFees = platformFee + methodFee;
+    const totalFees = platformFee + providerFee;
     const netAmount = amount - totalFees;
 
     return {
       platformFee,
-      methodFee,
+      providerFee,
       totalFees,
       netAmount: netAmount > 0 ? netAmount : 0
     };
@@ -465,9 +469,22 @@ export function WithdrawalModal({
             {/* Step 1: Select Payment Method */}
             {step === 1 && (
               <div>
-                <h3 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '1.5rem', color: '#0f172a' }}>
-                  Select Payment Method
+                <h3 style={{ fontSize: '1.125rem', fontWeight: '700', marginBottom: '1rem', color: '#0f172a' }}>
+                  Select Withdrawal Method
                 </h3>
+
+                <div style={{
+                  background: 'rgba(37, 78, 88, 0.08)',
+                  border: '1px solid rgba(37, 78, 88, 0.2)',
+                  borderRadius: '10px',
+                  padding: '0.875rem 1rem',
+                  marginBottom: '1.5rem',
+                  fontSize: '0.8125rem',
+                  color: '#334155',
+                  lineHeight: '1.5',
+                }}>
+                  <strong>📱 M-Pesa Only:</strong> Withdrawals are processed via <strong>Pochi la Biashara</strong> (free) or <strong>B2B Paybill</strong> (KES 30 fee). Other methods are not supported.
+                </div>
 
                 {paymentMethods.length === 0 ? (
                   <div style={{
@@ -742,11 +759,11 @@ export function WithdrawalModal({
                       </span>
                     </div>
 
-                    {fees.methodFee > 0 && (
+                    {fees.providerFee > 0 && (
                       <div className="withdrawal-fee-row">
-                        <span style={{ color: '#64748b' }}>{selectedMethod.name} Fee</span>
+                        <span style={{ color: '#64748b' }}>Provider Fee ({selectedMethod.name})</span>
                         <span style={{ fontWeight: '600', color: '#ef4444' }}>
-                          - {formatPrice(fees.methodFee, 'KES')}
+                          - {formatPrice(fees.providerFee, 'KES')}
                         </span>
                       </div>
                     )}
