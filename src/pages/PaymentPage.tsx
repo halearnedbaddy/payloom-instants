@@ -499,6 +499,93 @@ const PaymentPage = () => {
           </Card>
         )}
 
+        {/* STK Push Step - for amounts >= 3000 */}
+        {currentStep === 'stk-push' && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Smartphone className="h-5 w-5 text-primary" />
+                <CardTitle>Pay via M-Pesa</CardTitle>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                An M-Pesa prompt will be sent to <strong>{phone}</strong>
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-center">
+                <p className="text-sm text-muted-foreground mb-1">Amount to pay</p>
+                <p className="text-2xl font-bold text-primary">{formatPrice(price, paymentLink.currency)}</p>
+              </div>
+
+              <div className="bg-muted rounded-lg p-3 text-sm space-y-1">
+                <p>✅ You'll receive an M-Pesa PIN prompt on your phone</p>
+                <p>✅ Enter your PIN to authorize the payment</p>
+                <p>✅ Payment is instant and secure</p>
+              </div>
+
+              <Button 
+                className="w-full" 
+                size="lg" 
+                disabled={stkPushLoading}
+                onClick={handleSTKPush}
+              >
+                {stkPushLoading ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending prompt...</>
+                ) : (
+                  <>📲 Pay {formatPrice(price, paymentLink.currency)} via M-Pesa</>
+                )}
+              </Button>
+
+              {error && (
+                <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">{error}</div>
+              )}
+
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1" onClick={() => setCurrentStep('checkout')}>← Back</Button>
+                {sellerMethods.length > 0 && (
+                  <Button variant="ghost" className="flex-1 text-muted-foreground" onClick={handleFallbackToManual}>
+                    Pay manually instead
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* STK Push Waiting Step */}
+        {currentStep === 'stk-waiting' && (
+          <Card>
+            <CardContent className="pt-8 pb-6 text-center space-y-4">
+              <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
+              <h3 className="text-lg font-bold text-foreground">Waiting for M-Pesa...</h3>
+              <p className="text-sm text-muted-foreground">
+                Check your phone <strong>{phone}</strong> and enter your M-Pesa PIN
+              </p>
+              <div className="bg-muted rounded-lg p-4 text-sm">
+                <p className="font-medium mb-1">💡 Didn't receive the prompt?</p>
+                <p className="text-muted-foreground">Wait a few seconds, then try again.</p>
+              </div>
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1" onClick={() => setCurrentStep('stk-push')}>
+                  Try Again
+                </Button>
+                {sellerMethods.length > 0 && (
+                  <Button variant="ghost" className="flex-1" onClick={handleFallbackToManual}>
+                    Pay manually
+                  </Button>
+                )}
+              </div>
+
+              {createdTxId && (
+                <div className="mt-4 p-3 bg-primary/5 rounded-lg text-sm text-left">
+                  <p>Order: <span className="font-mono font-bold">{createdTxId}</span></p>
+                  <p className="text-muted-foreground mt-1">If payment completes, you'll be notified automatically.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Payment step - select method & enter code */}
         {currentStep === 'payment' && (
           <Card>
