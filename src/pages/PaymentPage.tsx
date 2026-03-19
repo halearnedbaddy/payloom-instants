@@ -77,8 +77,8 @@ const PaymentPage = () => {
   const [createdTxId, setCreatedTxId] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [stkPushLoading, setStkPushLoading] = useState(false);
-  const [stkCheckoutRequestId, setStkCheckoutRequestId] = useState<string | null>(null);
-  const [stkPolling, setStkPolling] = useState(false);
+  const [_stkCheckoutRequestId, setStkCheckoutRequestId] = useState<string | null>(null);
+  const [_stkPolling, setStkPolling] = useState(false);
   const STK_PUSH_THRESHOLD = 3000; // KES
   useEffect(() => {
     if (linkId) fetchPaymentLink();
