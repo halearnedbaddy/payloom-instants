@@ -18,6 +18,8 @@ interface PaymentMethod {
   recommended?: boolean;
   limits: { min: number; max: number };
   verified: boolean;
+  /** Provider type for withdrawal routing */
+  provider?: string;
 }
 
 interface WithdrawalModalProps {
