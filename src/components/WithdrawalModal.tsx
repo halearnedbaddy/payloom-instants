@@ -69,24 +69,26 @@ export function WithdrawalModal({
   const quickAmounts = [5000, 10000, 20000, 50000];
 
   const calculateFees = (amount: number, method: PaymentMethod | null) => {
-    if (!method || !amount) return { platformFee: 0, methodFee: 0, totalFees: 0, netAmount: 0 };
+    if (!method || !amount) return { platformFee: 0, providerFee: 0, totalFees: 0, netAmount: 0 };
 
-    const platformFeePercentage = 0.02;
-    const platformFee = Math.round(amount * platformFeePercentage);
+    // Platform fee: 2% (min KES 10, max KES 500)
+    let platformFee = Math.round(amount * 0.02);
+    platformFee = Math.max(10, Math.min(500, platformFee));
 
-    let methodFee = 0;
-    if (method.feeType === 'percentage') {
-      methodFee = Math.round(amount * (method.fee / 100));
-    } else {
-      methodFee = method.fee;
+    // Provider fee based on method
+    const providerName = (method.provider || method.name || '').toUpperCase();
+    let providerFee = 0;
+    if (providerName.includes('B2B') || providerName.includes('PAYBILL') || providerName.includes('BUSINESS')) {
+      providerFee = 30; // B2B: KES 30
     }
+    // Pochi la Biashara: KES 0
 
-    const totalFees = platformFee + methodFee;
+    const totalFees = platformFee + providerFee;
     const netAmount = amount - totalFees;
 
     return {
       platformFee,
-      methodFee,
+      providerFee,
       totalFees,
       netAmount: netAmount > 0 ? netAmount : 0
     };
