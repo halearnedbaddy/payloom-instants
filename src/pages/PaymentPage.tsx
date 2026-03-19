@@ -240,6 +240,8 @@ const PaymentPage = () => {
     if (sellerMethods.length === 1) setSelectedMethod(sellerMethods[0]);
     setCurrentStep('payment');
   };
+
+  const handleSubmitPayment = async () => {
     if (!selectedMethod) { toast({ title: "Select a method", variant: "destructive" }); return; }
     const validation = validateTransactionCode(txCode, selectedMethod.payment_type);
     if (!validation.valid) { setCodeError(validation.error || 'Invalid code'); return; }
