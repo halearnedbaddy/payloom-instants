@@ -44,7 +44,7 @@ interface SellerPaymentMethod {
   is_active: boolean | null;
 }
 
-type Step = 'otp' | 'verify' | 'checkout' | 'payment' | 'submitting' | 'success';
+type Step = 'otp' | 'verify' | 'checkout' | 'payment' | 'stk-push' | 'stk-waiting' | 'submitting' | 'success';
 
 const PaymentPage = () => {
   const { linkId, transactionId } = useParams<{ linkId?: string; transactionId?: string }>();
