@@ -171,16 +171,75 @@ const PaymentPage = () => {
   const handleProceedToPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!buyerName.trim() || !linkId || !paymentLink) return;
+    
+    const priceVal = typeof paymentLink.price === 'string' ? parseFloat(paymentLink.price) : paymentLink.price;
+    
+    // For amounts >= 3000, offer STK Push
+    if (priceVal >= STK_PUSH_THRESHOLD) {
+      setCurrentStep('stk-push');
+      return;
+    }
+    
     if (sellerMethods.length === 0) {
       toast({ title: "No Payment Methods", description: "Seller hasn't configured payment methods", variant: "destructive" });
       return;
     }
-    // Auto-select first method if only one
     if (sellerMethods.length === 1) setSelectedMethod(sellerMethods[0]);
     setCurrentStep('payment');
   };
 
-  const handleSubmitPayment = async () => {
+  const handleSTKPush = async () => {
+    if (!paymentLink || !linkId) return;
+    setStkPushLoading(true);
+    setError(null);
+    try {
+      // Create order first
+      const orderRes = await fetch(`${SUPABASE_URL}/functions/v1/links-api/${linkId}/purchase`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({
+          buyerName, buyerPhone: phone, buyerEmail: buyerEmail || undefined,
+          deliveryAddress: buyerAddress || undefined, paymentMethod: 'MPESA_STK',
+        }),
+      });
+      const orderResult = await orderRes.json();
+      if (!orderResult.success) throw new Error(orderResult.error || "Failed to create order");
+      const orderId = orderResult.data?.transactionId || orderResult.data?.id;
+      setCreatedTxId(orderId);
+
+      // Initiate STK Push
+      const stkRes = await fetch(`${SUPABASE_URL}/functions/v1/mpesa-api/stk-push`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON_KEY },
+        body: JSON.stringify({
+          phoneNumber: phone,
+          amount: typeof paymentLink.price === 'string' ? parseFloat(paymentLink.price) : paymentLink.price,
+          orderId,
+          orderRef: orderId,
+        }),
+      });
+      const stkResult = await stkRes.json();
+      if (!stkResult.success) throw new Error(stkResult.error || "STK Push failed");
+      
+      setStkCheckoutRequestId(stkResult.checkoutRequestId);
+      setCurrentStep('stk-waiting');
+      toast({ title: "Check your phone", description: "Enter your M-Pesa PIN to complete payment" });
+    } catch (err: any) {
+      setError(err.message);
+      toast({ title: "STK Push Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setStkPushLoading(false);
+    }
+  };
+
+  const handleFallbackToManual = () => {
+    if (sellerMethods.length === 0) {
+      toast({ title: "No Payment Methods", description: "Seller hasn't configured manual payment methods", variant: "destructive" });
+      return;
+    }
+    if (sellerMethods.length === 1) setSelectedMethod(sellerMethods[0]);
+    setCurrentStep('payment');
+  };
     if (!selectedMethod) { toast({ title: "Select a method", variant: "destructive" }); return; }
     const validation = validateTransactionCode(txCode, selectedMethod.payment_type);
     if (!validation.valid) { setCodeError(validation.error || 'Invalid code'); return; }
