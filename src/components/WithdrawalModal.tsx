@@ -746,11 +746,11 @@ export function WithdrawalModal({
                       </span>
                     </div>
 
-                    {fees.methodFee > 0 && (
+                    {fees.providerFee > 0 && (
                       <div className="withdrawal-fee-row">
-                        <span style={{ color: '#64748b' }}>{selectedMethod.name} Fee</span>
+                        <span style={{ color: '#64748b' }}>Provider Fee ({selectedMethod.name})</span>
                         <span style={{ fontWeight: '600', color: '#ef4444' }}>
-                          - {formatPrice(fees.methodFee, 'KES')}
+                          - {formatPrice(fees.providerFee, 'KES')}
                         </span>
                       </div>
                     )}
